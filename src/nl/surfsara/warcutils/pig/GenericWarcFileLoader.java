@@ -18,6 +18,7 @@ package nl.surfsara.warcutils.pig;
 import java.io.IOException;
 import java.util.Scanner;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -51,6 +52,7 @@ public abstract class GenericWarcFileLoader extends LoadFunc {
 				String url = warcRecord.header.warcTargetUriStr;
 				String length = null;
 				String type = null;
+				String content = IOUtils.toString(warcRecord.getPayloadContent());
 
 				HttpHeader httpheader = warcRecord.getHttpHeader();
 				if (httpheader != null) {
@@ -75,8 +77,9 @@ public abstract class GenericWarcFileLoader extends LoadFunc {
 				 */
 				Tuple t = mTupleFactory.newTuple(3);
 				t.set(0, url);
-				t.set(1, length);
-				t.set(2, type);
+				t.set(1, type);
+				// fcisneros: get the content instead of the length
+				t.set(2, removeNewLines(content));
 
 				return t;
 			} else {
@@ -97,5 +100,13 @@ public abstract class GenericWarcFileLoader extends LoadFunc {
 	@Override
 	public void setLocation(String location, Job job) throws IOException {
 		FileInputFormat.setInputPaths(job, location);
+	}
+
+	private static String removeNewLines(String txt) {
+		if(txt == null || txt.isEmpty()) {
+			return txt;
+		}
+
+		return txt.replaceAll("[\\r\\n]+", " ");
 	}
 }
